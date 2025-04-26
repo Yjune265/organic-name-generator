@@ -2,17 +2,37 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>유기화합물 이름 생성기</title>
-  <link rel="stylesheet" href="style.css">
+  <title>Organic Name Generator</title>
+  
+  <link rel="stylesheet" href="css/kekule.css">
+  
 </head>
 <body>
-  <h1>유기화합물 이름 생성기</h1>
-
-  <div id="ketcher-container" style="width:600px; height:400px; margin: auto;"></div>
-
+  <h1>Organic Name Generator</h1>
+  <div id="editor" style="width:600px; height:400px; border:1px solid #ccc;" data-widget="Kekule.Editor.Composer" data-chem-obj="url(#molecule)"></div>
   <button onclick="generateName()">이름 생성하기</button>
-  <p id="result"></p>
 
-  <script src="script.js"></script>
+  <script src="js/kekule.js"></script>
+  <script>
+    let composer;
+
+    window.onload = function() {
+      composer = new Kekule.Editor.Composer('editor');
+    
+    };
+
+    function generateName() {
+      let mol = composer.exportObjs(Kekule.Molecule)[0];
+      console.log(mol);
+
+      if (mol) {
+        alert('분자 구조를 성공적으로 가져왔습니다!');
+        // 나중에 여기에 IUPAC 이름 생성 로직 추가할 예정
+      } else {
+        alert('먼저 구조를 그려주세요!');
+      }
+    }
+
+  </script>
 </body>
 </html>
