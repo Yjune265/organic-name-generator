@@ -3,36 +3,42 @@
 <head>
   <meta charset="UTF-8">
   <title>Organic Name Generator</title>
-  
+
   <link rel="stylesheet" href="css/kekule.css">
   
 </head>
 <body>
   <h1>Organic Name Generator</h1>
-  <div id="editor" style="width:600px; height:400px; border:1px solid #ccc;" data-widget="Kekule.Editor.Composer" data-chem-obj="url(#molecule)"></div>
+
+  <div id="editor" style="width:600px; height:400px; border:1px solid #ccc;" data-widget="Kekule.Editor.Composer" data-chem-obj="url(#molecule)"></div></div>
+
   <button onclick="generateName()">이름 생성하기</button>
 
-  <script src="js/kekule.js"></script>
+  <script src="js/kekule.js"></script> <!---이거 위치가 head면 실행 안됨-->
   <script>
     let composer;
 
     window.onload = function() {
+
       composer = Kekule.Editor.Composer('editor');
-    
+      
     };
 
     function generateName() {
-      let mol = composer.exportObjs(Kekule.Molecule)[0];
+      if (!composer) {
+        alert('Editor is not ready yet!');
+        return;
+      }
+
+      const mol = composer.exportMol();
       console.log(mol);
 
       if (mol) {
-        alert('분자 구조를 성공적으로 가져왔습니다!');
-        // 나중에 여기에 IUPAC 이름 생성 로직 추가할 예정
+        alert('구조 데이터가 출력되었습니다!');
       } else {
-        alert('먼저 구조를 그려주세요!');
+        alert('먼저 구조를 그린 후 시도해주세요!');
       }
     }
-
   </script>
 </body>
 </html>
