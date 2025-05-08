@@ -17,39 +17,43 @@
   <script src="js/kekule.js"></script> 
   <script>
     let composer;
-
-    window.onload = function() {
-
-      //const container = document.getElementById('editor');
-
-      composer = new Kekule.Editor.Composer('editor');
-      
+  
+    window.onload = function () {
+      const container = document.getElementById('editor');
+      composer = new Kekule.Editor.Composer(container);
     };
-
+  
     async function generateName() {
-      //if (!composer) {
-        //alert('Editor is not ready yet!');
-        //return;
-      //}
-
-      var mol = getCurrMol();
-
-      var smiles = Kekule.IO.saveFormatData(mol, 'smi');
-
-      console.log('SMILES:', smiles);
-
-      try {
-        const response = await fetch(`https://cactus.nci.nih.gov/chemical/structure/${encodeURIComponent(smiles)}/iupac_name`);
-        if (!response.ok) throw new Error('API 요청 실패');
-        const name = await response.text();
-
-        alert('IUPAC 이름: ' + name);
-      } catch (err) {
-        console.error(err);
-        alert('이름을 가져오는 데 실패했습니다.');
+      if (!composer || !composer.editor) {
+        alert('Editor is not ready yet!');
+        return;
       }
-
+  
+      const smiles = composer.editor.exportSmiles();
+      console.log('SMILES:', smiles);
+  
+      try {
+        const response = await fetch('http://127.0.0.1:5000/generate-name', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ smiles: smiles })
+        });
+  
+        const data = await response.json();
+  
+        if (data.formula) {
+          alert('분자식: ' + data.formula);
+        } else {
+          alert('에러: ' + (data.error || 'Unknown error'));
+        }
+      } catch (error) {
+        console.error(error);
+        alert('백엔드 서버에 연결하지 못했습니다.');
+      }
     }
   </script>
+  
 </body>
 </html>
