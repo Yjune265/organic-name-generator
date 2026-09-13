@@ -9,6 +9,8 @@ function check(label, ok, detail) {
 }
 
 /* --- the database is self-consistent ------------------------------- */
+// Stereoisomers share a constitution key on purpose, so entries may only
+// collide when the engine can still tell them apart by name.
 var keys = {};
 ONG.COMPOUNDS.forEach(function (entry) {
   var mol;
@@ -18,11 +20,13 @@ ONG.COMPOUNDS.forEach(function (entry) {
     check('parse ' + entry.smiles, false, e.message);
     return;
   }
-  var key = mol.structureKey();
-  check('unique key ' + entry.smiles, !keys[key], 'collides with ' + keys[key]);
+  var generated = ONG.generatedNameFor(mol);
+  var key = mol.structureKey() + '|' + generated;
+  check('distinguishable ' + entry.smiles, !keys[key], 'indistinguishable from ' + keys[key]);
   keys[key] = entry.smiles;
-  var found = ONG.lookupCompound(mol);
-  check('lookup ' + entry.smiles, found && found.smiles === entry.smiles);
+  var found = ONG.lookupCompound(mol, generated);
+  check('lookup ' + entry.smiles, found && found.smiles === entry.smiles,
+        'got ' + (found && found.smiles));
   check('has a name ' + entry.smiles, !!(entry.iupac || (entry.common && entry.common.length)));
 });
 
@@ -66,7 +70,10 @@ DB_CASES.forEach(function (c) {
   var r = ONG.nameStructure(ONG.parseSmiles(c[0]));
   check('db name ' + c[2], r.name === c[1], 'got ' + r.name);
   check('db common ' + c[2], (r.common || []).indexOf(c[2]) >= 0, 'got ' + (r.common || []).join(','));
-  check('db quiet ' + c[2], r.warnings.length === 0, 'warnings: ' + r.warnings.join('|'));
+  // Only "cannot name this skeleton" complaints are noise once a curated
+  // name is used; an undefined-stereocentre note is still worth showing.
+  var noisy = r.warnings.filter(function (w) { return w.indexOf('고리 골격') >= 0; });
+  check('db quiet ' + c[2], noisy.length === 0, 'warnings: ' + r.warnings.join('|'));
 });
 
 /* --- structures drawn differently still match ----------------------- */

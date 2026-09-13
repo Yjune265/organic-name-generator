@@ -186,10 +186,95 @@ var COMPOUNDS = [
   {smiles: 'CC(=O)OC1=CC=CC=C1C(=O)OC', iupac: 'methyl 2-(acetyloxy)benzoate', common: []},
   {smiles: 'OC(=O)CC(C)(O)CC(=O)O', iupac: '3-hydroxy-3-methylpentanedioic acid', common: []},
   {smiles: 'CCCCCCCCCCCCCCCCCC(=O)OCC(O)CO', iupac: '2,3-dihydroxypropyl octadecanoate',
-   common: ['glyceryl monostearate']}
+   common: ['glyceryl monostearate']},
+
+  /* --- sulfur and nitrogen functional groups -------------------------- */
+  {smiles: 'OS(=O)(=O)c1ccccc1', iupac: 'benzenesulfonic acid', common: ['벤젠술폰산']},
+  {smiles: 'CS(=O)(=O)O', iupac: 'methanesulfonic acid', common: ['메실산', 'MsOH']},
+  {smiles: 'Cc1ccc(cc1)S(=O)(=O)O', iupac: '4-methylbenzene-1-sulfonic acid',
+   common: ['p-toluenesulfonic acid', 'TsOH', '토실산']},
+  {smiles: 'Cc1ccc(cc1)S(=O)(=O)Cl', iupac: '4-methylbenzene-1-sulfonyl chloride',
+   common: ['tosyl chloride', 'TsCl']},
+  {smiles: 'Nc1ccc(cc1)S(=O)(=O)N', iupac: '4-aminobenzene-1-sulfonamide',
+   common: ['sulfanilamide', '설파닐아마이드']},
+  {smiles: 'NCCS(=O)(=O)O', iupac: '2-aminoethane-1-sulfonic acid', common: ['taurine', '타우린']},
+  {smiles: 'CS(C)(=O)=O', iupac: '(methanesulfonyl)methane', common: ['dimethyl sulfone', 'MSM']},
+  {smiles: 'CSc1ccccc1', iupac: '(methylsulfanyl)benzene', common: ['thioanisole']},
+  {smiles: 'CC(=O)OC(C)=O', iupac: 'ethanoic anhydride', common: ['acetic anhydride', '무수 아세트산']},
+  {smiles: 'O=C1CCC(=O)O1', iupac: 'oxolane-2,5-dione', common: ['succinic anhydride', '무수 숙신산']},
+  {smiles: 'O=C1OC(=O)c2ccccc12', iupac: '2-benzofuran-1,3-dione',
+   common: ['phthalic anhydride', '무수 프탈산']},
+  {smiles: 'O=C=Nc1ccccc1', iupac: 'isocyanatobenzene', common: ['phenyl isocyanate']},
+  {smiles: 'O=Nc1ccccc1', iupac: 'nitrosobenzene', common: ['나이트로소벤젠']},
+  {smiles: 'C[N+](C)(C)C', iupac: 'N,N,N-trimethylmethanaminium',
+   common: ['tetramethylammonium', '테트라메틸암모늄']},
+
+  /* --- stereochemistry: the isomer decides the common name ------------ */
+  {smiles: 'N[C@@H](C)C(=O)O', iupac: '(2S)-2-aminopropanoic acid',
+   common: ['L-alanine', 'L-Ala', 'L-알라닌']},
+  {smiles: 'N[C@H](C)C(=O)O', iupac: '(2R)-2-aminopropanoic acid',
+   common: ['D-alanine', 'D-알라닌']},
+  {smiles: 'OC[C@H](N)C(=O)O', iupac: '(2S)-2-amino-3-hydroxypropanoic acid',
+   common: ['L-serine', 'L-Ser']},
+  {smiles: 'SC[C@H](N)C(=O)O', iupac: '(2R)-2-amino-3-sulfanylpropanoic acid',
+   common: ['L-cysteine', 'L-Cys'],
+   note: 'L-시스테인은 황의 우선순위 때문에 다른 L-아미노산과 달리 (R)로 표기됩니다.'},
+  {smiles: 'CC(C)[C@H](N)C(=O)O', iupac: '(2S)-2-amino-3-methylbutanoic acid',
+   common: ['L-valine', 'L-Val']},
+  {smiles: 'CC(C)C[C@H](N)C(=O)O', iupac: '(2S)-2-amino-4-methylpentanoic acid',
+   common: ['L-leucine', 'L-Leu']},
+  {smiles: 'OC(=O)[C@@H](N)Cc1ccccc1', iupac: '(2S)-2-amino-3-phenylpropanoic acid',
+   common: ['L-phenylalanine', 'L-Phe']},
+  {smiles: 'C[C@@H](O)[C@H](N)C(=O)O', iupac: '(2S,3R)-2-amino-3-hydroxybutanoic acid',
+   common: ['L-threonine', 'L-Thr']},
+  {smiles: 'OC(=O)[C@@H]1CCCN1', iupac: '(2S)-pyrrolidine-2-carboxylic acid',
+   common: ['L-proline', 'L-Pro']},
+  {smiles: 'C[C@H](O)C(=O)O', iupac: '(2S)-2-hydroxypropanoic acid',
+   common: ['L-lactic acid', 'L-젖산']},
+  {smiles: 'OC[C@@H](O)C=O', iupac: '(2R)-2,3-dihydroxypropanal',
+   common: ['D-glyceraldehyde', 'D-글리세르알데하이드']},
+  {smiles: 'OC[C@@H](O)[C@@H](O)[C@H](O)[C@@H](O)C=O',
+   iupac: '(2R,3S,4R,5R)-2,3,4,5,6-pentahydroxyhexanal',
+   common: ['D-glucose', 'D-포도당', 'dextrose'],
+   note: '사슬형(open-chain) 구조 기준입니다. 고리형(α/β-피라노스)은 따로 그려야 합니다.'},
+  {smiles: 'OC[C@@H](O)[C@@H](O)[C@@H](O)C=O', iupac: '(2R,3R,4R)-2,3,4,5-tetrahydroxypentanal',
+   common: ['D-ribose', 'D-리보스']},
+  {smiles: 'CC(C)[C@@H]1CC[C@@H](C)C[C@H]1O',
+   iupac: '(1R,2S,5R)-5-methyl-2-(propan-2-yl)cyclohexan-1-ol',
+   common: ['L-menthol', '(−)-멘톨']},
+  {smiles: 'OC(=O)[C@H](O)[C@@H](O)C(=O)O', iupac: '(2R,3R)-2,3-dihydroxybutanedioic acid',
+   common: ['L-(+)-tartaric acid', 'L-타타르산']},
+  {smiles: 'OC(=O)[C@H](O)[C@H](O)C(=O)O', iupac: '(2R,3S)-2,3-dihydroxybutanedioic acid',
+   common: ['meso-tartaric acid'],
+   note: '두 입체중심이 서로 상쇄되어 광학 활성이 없는 meso 화합물입니다.'},
+  {smiles: 'CC(C)Cc1ccc(cc1)[C@H](C)C(=O)O',
+   iupac: '(2S)-2-[4-(2-methylpropyl)phenyl]propanoic acid',
+   common: ['dexibuprofen', '(S)-이부프로펜'],
+   note: '이부프로펜의 두 거울상 중 실제 약효를 내는 쪽입니다.'},
+  {smiles: 'COc1ccc2cc([C@H](C)C(=O)O)ccc2c1',
+   iupac: '(2S)-2-(6-methoxynaphthalen-2-yl)propanoic acid', common: ['naproxen', '나프록센']},
+  {smiles: 'CNC[C@H](O)c1ccc(O)c(O)c1',
+   iupac: '4-[(1R)-1-hydroxy-2-(methylamino)ethyl]benzene-1,2-diol',
+   common: ['(R)-adrenaline', '(R)-에피네프린']},
+  {smiles: 'CC(=C)[C@@H]1CCC(C)=CC1', iupac: '(4R)-1-methyl-4-(prop-1-en-2-yl)cyclohex-1-ene',
+   common: ['(R)-limonene', 'D-리모넨'], note: '오렌지 향이 나는 쪽 거울상입니다.'},
+  {smiles: 'OC(=O)/C=C/C(=O)O', iupac: '(2E)-but-2-enedioic acid',
+   common: ['fumaric acid', '푸마르산']},
+  {smiles: 'OC(=O)/C=C\\C(=O)O', iupac: '(2Z)-but-2-enedioic acid',
+   common: ['maleic acid', '말레산']},
+  {smiles: 'CCCCCCCC/C=C\\CCCCCCCC(=O)O', iupac: '(9Z)-octadec-9-enoic acid',
+   common: ['oleic acid', '올레산']},
+  {smiles: 'CCCCCCCC/C=C/CCCCCCCC(=O)O', iupac: '(9E)-octadec-9-enoic acid',
+   common: ['elaidic acid', '엘라이드산']},
+  {smiles: 'O=C/C=C/c1ccccc1', iupac: '(2E)-3-phenylprop-2-enal',
+   common: ['cinnamaldehyde', '계피 알데하이드']}
 ];
 
 var index = null;
+
+function hasStereoMarkup(smiles) {
+  return /@|\/|\\/.test(smiles);
+}
 
 function buildIndex() {
   if (index) return index;
@@ -197,6 +282,7 @@ function buildIndex() {
   COMPOUNDS.forEach(function (entry) {
     try {
       entry.mol = ONG.parseSmiles(entry.smiles);
+      entry.hasStereo = hasStereoMarkup(entry.smiles);
       var key = entry.mol.structureKey();
       if (!index[key]) index[key] = [];
       index[key].push(entry);
@@ -207,15 +293,37 @@ function buildIndex() {
   return index;
 }
 
-/** Exact structure lookup (constitution only). */
-function lookup(mol) {
+/** The engine's name for a database entry, cached. */
+function entryName(entry) {
+  if (entry._name === undefined) entry._name = ONG.generatedNameFor(entry.mol);
+  return entry._name;
+}
+
+/**
+ * Exact structure lookup. Constitution decides which entries are candidates;
+ * when the drawing carries stereochemistry, the matching stereoisomer wins,
+ * so L-alanine and D-alanine do not answer for each other.
+ */
+function lookup(mol, generatedName) {
   var idx = buildIndex();
   var bucket = idx[mol.structureKey()];
   if (!bucket) return null;
-  for (var i = 0; i < bucket.length; i++) {
-    if (ONG.isIsomorphic(mol, bucket[i].mol, {limit: 1, ignoreBondOrder: true})) return bucket[i];
+  var matches = bucket.filter(function (entry) {
+    return ONG.isIsomorphic(mol, entry.mol, {limit: 1, ignoreBondOrder: true});
+  });
+  if (!matches.length) return null;
+
+  if (generatedName) {
+    for (var i = 0; i < matches.length; i++) {
+      if (matches[i].hasStereo && entryName(matches[i]) === generatedName) return matches[i];
+    }
   }
-  return null;
+  for (var k = 0; k < matches.length; k++) {
+    if (!matches[k].hasStereo) return matches[k];
+  }
+  // Only stereo-specific entries exist and none of them matches: the drawing
+  // is a different stereoisomer of a known compound.
+  return Object.assign({}, matches[0], {stereoMismatch: true});
 }
 
 ONG.COMPOUNDS = COMPOUNDS;

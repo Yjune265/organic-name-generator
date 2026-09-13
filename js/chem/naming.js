@@ -26,7 +26,15 @@ var MULT_COMPLEX = ['', '', 'bis', 'tris', 'tetrakis', 'pentakis', 'hexakis', 'h
   'octakis', 'nonakis', 'decakis'];
 
 var SUFFIX = {
+  ammonium:       {inChain: 'aminium'},
   carboxylicAcid: {inChain: 'oic acid', attached: 'carboxylic acid'},
+  sulfonicAcid:   {attached: 'sulfonic acid'},
+  sulfinicAcid:   {attached: 'sulfinic acid'},
+  sulfonateEster: {attached: 'sulfonate'},
+  sulfonylHalide: {attached: 'sulfonyl'},
+  sulfonamide:    {attached: 'sulfonamide'},
+  thione:         {inChain: 'thione'},
+  imine:          {inChain: 'imine'},
   ester:          {inChain: 'oate',     attached: 'carboxylate'},
   acylHalide:     {inChain: 'oyl',      attached: 'carbonyl'},
   amide:          {inChain: 'amide',    attached: 'carboxamide'},
@@ -121,6 +129,8 @@ function compareVectors(a, b) {
 function Ctx(mol, style) {
   this.mol = mol;
   this.style = style || {};
+  this.stereoInfo = (ONG.stereo && !(this.style || {}).noStereo)
+    ? ONG.stereo.analyse(mol) : {atoms: {}, bonds: {}, undefinedCentres: [], undefinedBonds: []};
   this.groups = ONG.perceiveGroups(mol);
   this.warnings = [];
   this.steps = [];
@@ -271,12 +281,18 @@ function nameUnit(ctx, allowed, attachment) {
     return null;
   }
 
-  var best = null;
+  // Candidates that lose should not leave their complaints behind: keep the
+  // warnings raised while naming the parent we actually chose.
+  var best = null, before = ctx.warnings.slice(), everything = before.slice();
   candidates.forEach(function (cand) {
+    ctx.warnings = before.slice();
     var evaluated = evaluateCandidate(ctx, cand, allowed, allowedSet, principal, attachment);
+    ctx.warnings.forEach(function (w) { if (everything.indexOf(w) < 0) everything.push(w); });
     if (!evaluated) return;
+    evaluated.warnings = ctx.warnings.slice();
     if (!best || compareVectors(evaluated.score, best.score) < 0) best = evaluated;
   });
+  ctx.warnings = best ? best.warnings : everything;
   if (!best) return null;
   return assemble(ctx, best, isSubstituent);
 }
@@ -287,7 +303,10 @@ function anchorOf(ctx, group) {
     case 'alcohol': return group.carrier;
     case 'thiol': return group.carrier;
     case 'amine': return group.nitrogen;
-    default: return group.carbon;
+    case 'ammonium': return group.nitrogen;
+    // Only the sulfur oxo-acids are anchored on sulfur; a thione is not.
+    default: return (group.sulfur !== undefined && group.carrier !== undefined)
+      ? group.sulfur : group.carbon;
   }
 }
 
@@ -414,7 +433,11 @@ function placeGroup(ctx, group, inParent) {
   if (group.type === 'alcohol' || group.type === 'thiol') {
     return inParent[group.carrier] ? {mode: 'inChain', locantAtom: group.carrier} : null;
   }
-  if (group.type === 'amine') {
+  // -SO3H, -SO2NH2 and friends hang off a carbon: that carbon takes the locant.
+  if (group.sulfur !== undefined && group.carrier !== undefined) {
+    return inParent[group.carrier] ? {mode: 'attached', locantAtom: group.carrier} : null;
+  }
+  if (group.type === 'amine' || group.type === 'ammonium') {
     var carriers = mol.heavyNeighbors(group.nitrogen).filter(function (j) { return inParent[j]; });
     return carriers.length ? {mode: 'inChain', locantAtom: carriers[0]} : null;
   }
@@ -565,15 +588,16 @@ function assemble(ctx, ev, isSubstituent) {
     if (!merged[key]) merged[key] = {name: p.name, sortName: p.sortName, complex: p.complex, locants: []};
     merged[key].locants.push(p.locant);
   });
+  // Locants carry no information on a one-atom parent, or when a lone
+  // citation sits on a skeleton whose positions are all equivalent.
+  var omitLocants = ev.parentSize === 1 ||
+    (ev.citations === 1 && (ev.parentSize <= 2 || ev.allEquivalent));
+
   var prefixList = Object.keys(merged).map(function (k) { return merged[k]; });
   prefixList.sort(function (a, b) {
     if (a.sortName === b.sortName) return 0;
     return a.sortName < b.sortName ? -1 : 1;
   });
-  // Locants carry no information on a one-atom parent, or when a lone
-  // citation sits on a skeleton whose positions are all equivalent.
-  var omitLocants = ev.parentSize === 1 ||
-    (ev.citations === 1 && (ev.parentSize <= 2 || ev.allEquivalent));
   var prefixText = prefixList.map(function (p) {
     var locants = sortLocants(p.locants);
     var name = p.name;
@@ -605,6 +629,13 @@ function assemble(ctx, ev, isSubstituent) {
       else name = hydride.replace(/e$/, '') + '-' + loc + '-yl';
     }
     var full = joinPrefix(prefixText, name);
+    var subStereo = stereoDescriptors(ctx, ev, omitLocants);
+    if (subStereo) {
+      return {
+        name: subStereo + full, sortName: sortKeyOf(full),
+        complex: true, evaluation: ev
+      };
+    }
     if (ctx.style && ctx.style.retained && RETAINED_SUBSTITUENTS[full]) {
       full = RETAINED_SUBSTITUENTS[full];
       return {name: full, sortName: sortKeyOf(full), complex: false, evaluation: ev};
@@ -626,7 +657,10 @@ function assemble(ctx, ev, isSubstituent) {
 
   if (served.length) {
     var spec = SUFFIX[type];
+    // Classes with no suffix form of their own (anhydrides) are named elsewhere.
+    if (!spec) return null;
     var word = mode === 'attached' ? spec.attached : spec.inChain;
+    if (!word) return null;
     var locants = sortLocants(served.map(function (s) {
       return numbering.locantOf[s.placement.locantAtom];
     }));
@@ -648,23 +682,27 @@ function assemble(ctx, ev, isSubstituent) {
       var core = multiplier(served.length) + word;
       hydride = elide(hydride, core) + (omit ? '' : '-' + locants.join(',') + '-') + core;
     }
-    if (type === 'ester') {
+    if (type === 'ester' || type === 'sulfonateEster') {
       var alkylNames = served.map(function (s) {
+        var anchorAtom = s.group.carbon !== undefined ? s.group.carbon : s.group.sulfur;
         var alkylStart = mol.heavyNeighbors(s.group.esterO).filter(function (j) {
-          return j !== s.group.carbon;
+          return j !== anchorAtom;
         })[0];
         var sub = ONG.nameBranch(ctx, branchAtoms(mol, alkylStart, indexSet(ev.cand.atoms.concat([s.group.esterO])), allSet(mol)), alkylStart, s.group.esterO, 1);
         return sub ? sub.name : '?';
       });
       esterAlkyl = uniqueJoin(alkylNames);
     }
-    if (type === 'acylHalide') {
+    if (type === 'acylHalide' || type === 'sulfonylHalide') {
       halideWord = served.map(function (s) { return s.group.halide; })[0];
       tail = ' ' + halideWord;
     }
   }
 
   var full = joinPrefix(prefixText, hydride) + tail;
+  var stereo = stereoDescriptors(ctx, ev, omitLocants && !ev.served.length);
+  if (stereo) full = stereo + full;
+  // "methyl (2R)-2-hydroxypropanoate": the descriptor belongs to the acid part.
   if (esterAlkyl) full = esterAlkyl + ' ' + full;
 
   return {
@@ -676,6 +714,39 @@ function assemble(ctx, ev, isSubstituent) {
     // without having to parse it back apart.
     parts: {prefix: prefixText, parent: hydride, tail: tail, esterAlkyl: esterAlkyl}
   };
+}
+
+/**
+ * Stereodescriptors for one parent unit: "(2R,3S)", "(E)" ...
+ * Locants are cited unless the name omits them everywhere else.
+ */
+function stereoDescriptors(ctx, ev, omitLocants) {
+  var info = ctx.stereoInfo;
+  if (!info) return '';
+  var mol = ctx.mol, numbering = ev.numbering, items = [];
+
+  ev.cand.atoms.forEach(function (atom) {
+    var d = info.atoms[atom];
+    if (d) items.push({locant: numbering.locantOf[atom], descriptor: d});
+  });
+
+  var atomsInOrder = numbering.atomsInOrder;
+  var n = atomsInOrder.length;
+  var limit = ev.isChain ? n - 1 : n;
+  for (var k = 0; k < limit && n > 1; k++) {
+    var a = atomsInOrder[k], b = atomsInOrder[(k + 1) % n];
+    var bond = mol.bondBetween(a, b);
+    if (!bond || bond.order !== 2) continue;
+    var e = info.bonds[bond.idx];
+    if (e) items.push({locant: String(k + 1), descriptor: e});
+  }
+  if (!items.length) return '';
+
+  items.sort(function (x, y) { return locantValue(x.locant) - locantValue(y.locant); });
+  var text = items.map(function (it) {
+    return (omitLocants || it.locant === undefined ? '' : it.locant) + it.descriptor;
+  }).join(',');
+  return '(' + text + ')-';
 }
 
 /** Prefixes and parent need a hyphen when the parent starts with a locant. */
@@ -721,6 +792,48 @@ function sortKeyOf(name) {
     .toLowerCase();
 }
 
+/**
+ * R-CO-O-CO-R' is named from its two acid halves: "ethanoic anhydride",
+ * "ethanoic propanoic anhydride".
+ */
+function anhydrideName(mol) {
+  var groups = ONG.perceiveGroups(mol);
+  var anhydrides = groups.ofType('anhydride');
+  if (anhydrides.length !== 1) return null;
+  if (groups.principalRank !== anhydrides[0].rank) return null;
+  var g = anhydrides[0];
+  var blocked = {};
+  blocked[g.bridge] = true;
+
+  var halves = [g.carbon, g.partner].map(function (acyl) {
+    var atoms = branchAtoms(mol, acyl, blocked, allSet(mol));
+    var sub = mol.subMol(atoms);
+    sub.mol.addBond(sub.map[acyl], sub.mol.addAtom('O'), 1);   // close it into an acid
+    var name = generatedNameFor(sub.mol);
+    return name ? name.replace(/\s*acid$/, '').trim() : null;
+  });
+  if (halves.some(function (h) { return !h; })) return null;
+  if (halves[0] === halves[1]) return halves[0] + ' anhydride';
+  return halves.sort().join(' ') + ' anhydride';
+}
+
+/** The engine's own name for a molecule, or null. Never throws. */
+function generatedNameFor(mol, style) {
+  try {
+    var ctx = new Ctx(mol, style);
+    var unit = nameUnit(ctx, mol.atoms.map(function (a, i) { return i; }), null);
+    if (unit && !ctx.warnings.length) return unit.name;
+  } catch (e) { /* fall through to the special cases */ }
+  try {
+    return anhydrideName(mol);
+  } catch (e) {
+    return null;
+  }
+}
+
+ONG.generatedNameFor = generatedNameFor;
+ONG.anhydrideName = anhydrideName;
+
 ONG.naming = {
   STEMS: STEMS, MULT: MULT, MULT_COMPLEX: MULT_COMPLEX, SUFFIX: SUFFIX,
   stemFor: stemFor, multiplier: multiplier, locantValue: locantValue,
@@ -728,7 +841,7 @@ ONG.naming = {
   compareVectors: compareVectors, Ctx: Ctx, nameUnit: nameUnit,
   RETAINED_SUBSTITUENTS: RETAINED_SUBSTITUENTS,
   branchAtoms: branchAtoms, sortKeyOf: sortKeyOf, elide: elide, enclose: enclose,
-  joinPrefix: joinPrefix,
+  joinPrefix: joinPrefix, stereoDescriptors: stereoDescriptors,
   anchorOf: anchorOf, unsaturate: unsaturate, allSet: allSet
 };
 

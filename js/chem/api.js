@@ -101,7 +101,19 @@ function nameStructure(mol) {
   });
 
   var generatedName = generated.every(function (n) { return n; }) ? generated.join(' ; ') : null;
-  var entry = ONG.lookupCompound ? ONG.lookupCompound(mol) : null;
+  var entry = ONG.lookupCompound ? ONG.lookupCompound(mol, generatedName) : null;
+
+  var stereoInfo = ONG.stereo.analyse(mol);
+  var stereoDefined = stereoInfo.any;
+  if (stereoInfo.undefinedCentres.length) {
+    warnings.push('입체중심(카이랄 탄소)이 ' + stereoInfo.undefinedCentres.length +
+      '개 있지만 배치가 지정되어 있지 않아 R/S를 붙이지 않았습니다. ' +
+      '편집기에서 쐐기(굵은 선)·점선 결합으로 표시하거나 SMILES에 @/@@를 쓰면 됩니다.');
+  }
+  if (stereoInfo.undefinedBonds.length) {
+    warnings.push('이중결합의 기하 배치(E/Z)가 지정되어 있지 않습니다. ' +
+      '구조를 그릴 때 치환기 위치를 분명히 하거나 SMILES에 /, \\ 를 쓰면 E/Z를 붙여 드립니다.');
+  }
 
   var alternatives = [];
   if (components.length === 1) {
@@ -110,20 +122,41 @@ function nameStructure(mol) {
     } catch (e) { /* alternatives are a bonus, never fatal */ }
   }
 
-  // A curated name wins: it covers skeletons the generator cannot derive.
-  var primary = (entry && entry.iupac) || generatedName;
-  var source = (entry && entry.iupac) ? 'database' : (generatedName ? 'generated' : null);
-  if (entry && entry.iupac && generatedName && generatedName !== entry.iupac) {
+  // A curated name covers skeletons the generator cannot derive, but a
+  // generated name that carries stereodescriptors says more, so it wins.
+  var curated = entry && entry.iupac ? entry.iupac : null;
+  var preferGenerated = stereoDefined && generatedName &&
+    curated && !/\([\dRSEZ,]+\)-/.test(curated);
+  var primary = preferGenerated ? generatedName : (curated || generatedName);
+  var source = (primary === curated) ? 'database' : (generatedName ? 'generated' : null);
+
+  if (curated && primary !== curated) {
+    alternatives.unshift({
+      name: curated, kind: 'database',
+      note: '입체 배치를 빼고 부르는 이름'
+    });
+  } else if (curated && generatedName && generatedName !== curated) {
     alternatives.unshift({
       name: generatedName, kind: 'generated',
       note: '이 프로그램이 규칙대로 만들어 낸 이름'
     });
   }
+  if (entry && entry.stereoMismatch) {
+    warnings.push('그린 구조는 ' + (entry.common && entry.common[0] ? entry.common[0] : '수록된 화합물') +
+      '의 다른 입체 이성질체입니다. 관용명은 참고로만 보세요.');
+  }
+  // Only say something when the curated name really does ignore the stereo.
+  var curatedHasStereo = curated && /\([\dRSEZ,]+\)-/.test(curated);
+  if (stereoDefined && entry && !entry.hasStereo && !curatedHasStereo) {
+    warnings.push('관용명은 입체 이성질체를 구분하지 않고 부르는 이름입니다.');
+  }
   alternatives = alternatives.filter(function (a) { return a.name !== primary; });
 
   // A curated name already answers the question, so the generator's
   // complaints about skeletons it cannot handle are just noise.
-  if (entry && entry.iupac) warnings = [];
+  if (entry && entry.iupac) {
+    warnings = warnings.filter(function (w) { return w.indexOf('고리 골격') < 0 && w.indexOf('치환기가 있습니다') < 0; });
+  }
 
   return {
     formula: mol.formula(),
@@ -131,6 +164,7 @@ function nameStructure(mol) {
     atomCount: mol.atoms.length,
     name: primary,
     generatedName: generatedName,
+    stereo: stereoInfo,
     source: source,
     alternatives: alternatives,
     common: entry ? (entry.common || []) : [],

@@ -39,9 +39,15 @@ function nameBranch(ctx, atoms, start, parentAtom, bondOrder) {
   }
 
   if (group) {
+    // Groups that only ever appear as a prefix carry their own word.
+    if (group.prefix && group.atoms.indexOf(start) === 0) return plain(group.prefix);
     switch (group.type) {
       case 'halide':
         return plain(group.prefix);
+      case 'sulfonicAcid':
+        return plain('sulfo');
+      case 'sulfonamide':
+        return plain('sulfamoyl');
       case 'nitro':
         return plain('nitro');
       case 'alcohol':
@@ -116,9 +122,12 @@ function nameBranch(ctx, atoms, start, parentAtom, bondOrder) {
       return j !== parentAtom && oxo.indexOf(j) < 0;
     })[0];
     if (oxo.length && carbon !== undefined) {
+      // "(methanesulfinyl)methane", "benzenesulfonyl": these prefixes are
+      // built on the parent hydride name, not on the -yl substituent name.
       var word = oxo.length === 1 ? 'sulfinyl' : 'sulfonyl';
       var side = nameSub(ctx, restOf(atoms, [start].concat(oxo)), carbon, carbon);
-      if (side) return complexName(wrap(side) + word);
+      var hydride = side ? hydrideNameOf(side) : null;
+      if (hydride) return complexName(hydride + word);
     }
   }
 
@@ -173,6 +182,19 @@ function joinMultiplied(names) {
   return Object.keys(counts).sort().map(function (n) {
     return (counts[n] > 1 ? ONG.naming.multiplier(counts[n], /[-\d(]/.test(n)) : '') + n;
   }).join('');
+}
+
+/** The parent hydride behind a substituent name: methyl -> methane. */
+function hydrideNameOf(unit) {
+  var cand = unit.evaluation && unit.evaluation.cand;
+  if (!cand) return null;
+  if (cand.kind === 'ring') {
+    if (cand.ringKind === 'benzene') return 'benzene';
+    if (cand.ringKind === 'template') return cand.info.name;
+    return 'cyclo' + ONG.naming.stemFor(cand.atoms.length) + 'ane';
+  }
+  if (/[-\d(]/.test(unit.name)) return null;      // substituted: keep it simple
+  return ONG.naming.stemFor(cand.atoms.length) + 'ane';
 }
 
 /** "acetyl", "propanoyl", "benzoyl" for an acyl group. */

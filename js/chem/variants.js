@@ -33,7 +33,8 @@ var RETAINED_PARENTS = {
   'methanal': 'formaldehyde',
   'propan-2-one': 'acetone',
   'ethanenitrile': 'acetonitrile',
-  'trichloromethane': 'chloroform'
+  'trichloromethane': 'chloroform',
+  'ethanoic anhydride': 'acetic anhydride'
 };
 
 /** Word-level retained forms that may appear inside a larger name. */

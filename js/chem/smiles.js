@@ -24,7 +24,11 @@ function parseSmiles(text) {
   var prev = null;        // previous atom index
   var pendingBond = null; // bond order waiting for the next atom
   var pendingAromaticBond = false;
+  var pendingDirection = null;  // '/' or '\\' waiting for the next atom
   var ringBonds = {};     // ring-closure digit -> {atom, order, aromatic}
+  var stereoOrder = {};   // atom -> neighbours in written order (-1 = implicit H)
+  var chirality = {};     // atom -> '@' | '@@'
+  var directional = [];   // {bond, from, to, up} for / and \\
   var aromaticAtoms = [];
   var aromaticBonds = [];
   var i = 0;
@@ -54,6 +58,14 @@ function parseSmiles(text) {
       isotope: m[1] ? parseInt(m[1], 10) : null
     });
     if (aromatic) aromaticAtoms.push(idx);
+    if (m[3]) {
+      chirality[idx] = m[3];
+      // The implicit hydrogen of a chiral bracket atom counts at the position
+      // right after the preceding atom (or first, when there is none).
+      stereoOrder[idx] = [];
+      if (prev !== null) stereoOrder[idx].push(prev);
+      if (explicitH > 0) stereoOrder[idx].push(-1);
+    }
     return idx;
   }
 
@@ -72,14 +84,24 @@ function parseSmiles(text) {
     return null;
   }
 
+  function noteNeighbor(atom, neighbor) {
+    if (stereoOrder[atom]) stereoOrder[atom].push(neighbor);
+  }
+
   function attach(idx, aromatic) {
     if (prev !== null) {
+      noteNeighbor(prev, idx);
+      if (stereoOrder[idx] && stereoOrder[idx].indexOf(prev) < 0) stereoOrder[idx].unshift(prev);
       var order = pendingBond;
       var isAromaticBond = pendingAromaticBond ||
         (order === null && aromatic && mol.atoms[prev].__aromatic);
       if (order === null) order = 1;
       var bond = mol.bonds[mol.addBond(prev, idx, order)];
       if (isAromaticBond && bond) aromaticBonds.push(bond);
+      if (pendingDirection && bond) {
+        directional.push({bond: bond, from: prev, to: idx, up: pendingDirection === '/'});
+      }
+      pendingDirection = null;
     }
     mol.atoms[idx].__aromatic = !!aromatic;
     prev = idx;
@@ -101,15 +123,18 @@ function parseSmiles(text) {
     if (ch === '=') { pendingBond = 2; i++; continue; }
     if (ch === '#') { pendingBond = 3; i++; continue; }
     if (ch === ':') { pendingBond = 1; pendingAromaticBond = true; i++; continue; }
-    if (ch === '/' || ch === '\\') { i++; continue; }          // cis/trans - ignored
+    if (ch === '/' || ch === '\\') { pendingDirection = ch; i++; continue; }
     if (ch === '%' || /\d/.test(ch)) {
       var label;
       if (ch === '%') { label = s.substr(i + 1, 2); i += 3; }
       else { label = ch; i += 1; }
       if (prev === null) throw new Error('고리 닫기 번호의 위치가 잘못되었습니다.');
+      if (stereoOrder[prev]) stereoOrder[prev].push({ring: label});
       if (ringBonds[label]) {
         var open = ringBonds[label];
         delete ringBonds[label];
+        resolveRingPlace(open.atom, label, prev);
+        resolveRingPlace(prev, label, open.atom);
         var order = pendingBond !== null ? pendingBond : (open.order !== null ? open.order : 1);
         var rb = mol.bonds[mol.addBond(open.atom, prev, order)];
         var bothAromatic = mol.atoms[open.atom].__aromatic && mol.atoms[prev].__aromatic;
@@ -134,6 +159,43 @@ function parseSmiles(text) {
   }
 
   if (Object.keys(ringBonds).length) throw new Error('닫히지 않은 고리 번호가 있습니다.');
+
+  function resolveRingPlace(atom, label, partner) {
+    var list = stereoOrder[atom];
+    if (!list) return;
+    for (var k = 0; k < list.length; k++) {
+      if (list[k] && list[k].ring === label) { list[k] = partner; return; }
+    }
+  }
+
+  function applyStereo() {
+    Object.keys(chirality).forEach(function (key) {
+      var idx = parseInt(key, 10);
+      var order = (stereoOrder[idx] || []).filter(function (x) { return typeof x === 'number'; });
+      var expected = mol.neighbors(idx).length + mol.implicitH(idx);
+      if (order.length !== 4 || expected !== 4) return;   // only tetrahedral centres
+      mol.atoms[idx].stereo = {order: order, clockwise: chirality[key] === '@@'};
+    });
+
+    // "/" and "\" describe where a substituent sits relative to its double bond.
+    mol.bonds.forEach(function (bond) {
+      if (bond.order !== 2) return;
+      var a = sideOf(bond.a), b = sideOf(bond.b);
+      if (!a || !b) return;
+      bond.stereo = {refA: a.atom, refB: b.atom, same: a.label === b.label};
+    });
+
+    function sideOf(end) {
+      for (var k = 0; k < directional.length; k++) {
+        var d = directional[k];
+        if (d.from === end) return {atom: d.to, label: d.up ? 'U' : 'D'};
+        if (d.to === end) return {atom: d.from, label: d.up ? 'D' : 'U'};
+      }
+      return null;
+    }
+  }
+
+  applyStereo();
 
   if (aromaticAtoms.length) kekulize(mol, aromaticAtoms);
   mol.atoms.forEach(function (a) { delete a.__aromatic; });

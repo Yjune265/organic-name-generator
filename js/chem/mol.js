@@ -205,9 +205,25 @@ Mol.prototype.subMol = function (atomIdxs) {
     var a = this.atoms[atomIdxs[i]];
     map[atomIdxs[i]] = sub.addAtom(a.element, {charge: a.charge, explicitH: a.explicitH});
   }
+  // Stereochemistry refers to atoms by index, so it has to be remapped.
+  function remap(j) { return j < 0 ? j : (map[j] === undefined ? null : map[j]); }
+  for (i = 0; i < atomIdxs.length; i++) {
+    var src = this.atoms[atomIdxs[i]];
+    if (!src.stereo) continue;
+    var order = src.stereo.order.map(remap);
+    if (order.some(function (x) { return x === null; })) continue;
+    sub.atoms[map[atomIdxs[i]]].stereo = {order: order, clockwise: src.stereo.clockwise};
+  }
   for (i = 0; i < this.bonds.length; i++) {
     var b = this.bonds[i];
-    if (map[b.a] !== undefined && map[b.b] !== undefined) sub.addBond(map[b.a], map[b.b], b.order);
+    if (map[b.a] === undefined || map[b.b] === undefined) continue;
+    var idx = sub.addBond(map[b.a], map[b.b], b.order);
+    if (b.stereo && idx >= 0) {
+      var refA = remap(b.stereo.refA), refB = remap(b.stereo.refB);
+      if (refA !== null && refB !== null) {
+        sub.bonds[idx].stereo = {refA: refA, refB: refB, same: b.stereo.same};
+      }
+    }
   }
   return {mol: sub, map: map, rmap: atomIdxs.slice()};
 };

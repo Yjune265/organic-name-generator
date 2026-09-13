@@ -10,7 +10,8 @@
 <body>
   <header>
     <h1>Organic Name Generator</h1>
-    <p>유기 화합물 구조를 그리면 IUPAC 명명법에 따른 이름과, 함께 쓰이는 다른 이름들(관용 접두사·관용명·관용 표기)을 보여 줍니다.</p>
+    <p>유기 화합물 구조를 그리면 IUPAC 명명법에 따른 이름과, 함께 쓰이는 다른 이름들(관용 접두사·관용명·관용 표기)을 보여 줍니다.
+    쐐기·점선 결합으로 그리면 R/S를, 이중결합 치환기 위치로부터 E/Z를 함께 붙여 줍니다.</p>
   </header>
 
   <main>
@@ -27,7 +28,9 @@
         <input id="smiles-input" placeholder="또는 SMILES 입력 — 예: CC(=O)Oc1ccccc1C(=O)O" spellcheck="false">
         <button id="btn-smiles">SMILES로 이름 생성</button>
       </div>
-      <p class="hint">예시를 눌러 보세요. (편집기가 SMILES 읽기를 지원하면 구조도 함께 그려집니다.)</p>
+      <p class="hint">예시를 누르면 SMILES 칸에 들어가고 바로 이름이 나옵니다.
+      입체화학을 지정하려면 편집기에서 결합을 고른 뒤 쐐기(굵은 선)·점선으로 바꾸거나,
+      SMILES에 <code>@</code>/<code>@@</code>, <code>/</code>·<code>\</code>를 쓰면 됩니다.</p>
       <div class="examples" id="examples"></div>
     </section>
 
@@ -39,7 +42,7 @@
   </main>
 
   <footer>
-    이름은 2013 IUPAC 권고(치환 명명법)를 따릅니다. 입체화학(E/Z, R/S)은 구분하지 않으며,
+    이름은 2013 IUPAC 권고(치환 명명법)를 따릅니다. R/S와 E/Z는 CIP 우선순위 규칙으로 직접 판정합니다.
     다리 걸친 고리·스피로 고리 등 일부 골격은 잘 알려진 화합물 목록에 있을 때만 이름이 나옵니다.
   </footer>
 
@@ -47,6 +50,7 @@
   <script src="js/chem/mol.js"></script>
   <script src="js/chem/smiles.js"></script>
   <script src="js/chem/match.js"></script>
+  <script src="js/chem/stereo.js"></script>
   <script src="js/chem/rings.js"></script>
   <script src="js/chem/groups.js"></script>
   <script src="js/chem/naming.js"></script>

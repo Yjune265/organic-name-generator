@@ -15,8 +15,14 @@ var EXAMPLES = [
   ['네오펜테인', 'CC(C)(C)C'],
   ['아이소뷰틸 알코올', 'CC(C)CO'],
   ['바닐린', 'COc1cc(C=O)ccc1O'],
-  ['글루코스', 'OCC(O)C(O)C(O)C(O)C=O'],
   ['시트르산', 'OC(=O)CC(O)(CC(=O)O)C(=O)O'],
+  ['L-알라닌 (R/S)', 'N[C@@H](C)C(=O)O'],
+  ['D-글루코스 (R/S)', 'OC[C@@H](O)[C@@H](O)[C@H](O)[C@@H](O)C=O'],
+  ['멘톨 (R/S)', 'CC(C)[C@@H]1CC[C@@H](C)C[C@H]1O'],
+  ['올레산 (Z)', 'CCCCCCCC/C=C\\CCCCCCCC(=O)O'],
+  ['말레산 / 푸마르산', 'OC(=O)/C=C\\C(=O)O'],
+  ['토실 클로라이드', 'Cc1ccc(cc1)S(=O)(=O)Cl'],
+  ['무수 아세트산', 'CC(=O)OC(C)=O'],
   ['나프탈렌', 'c1ccc2ccccc2c1']
 ];
 
@@ -114,8 +120,24 @@ function nameFromSmiles() {
   render(ONG.nameStructure(mol), []);
 }
 
+var smilesReadable = null;
+
+/** Not every Kekule build ships a SMILES *reader* - ask before using one. */
+function canReadSmiles() {
+  if (smilesReadable !== null) return smilesReadable;
+  smilesReadable = false;
+  try {
+    var manager = Kekule.IO && Kekule.IO.ChemDataReaderManager;
+    if (manager && manager.getAllReadableFormatIds) {
+      var ids = manager.getAllReadableFormatIds() || [];
+      smilesReadable = ids.indexOf('smi') >= 0;
+    }
+  } catch (e) { smilesReadable = false; }
+  return smilesReadable;
+}
+
 function loadIntoEditor(smiles) {
-  if (!composer || !window.Kekule || !Kekule.IO || !Kekule.IO.loadFormatData) return;
+  if (!composer || !window.Kekule || !Kekule.IO || !canReadSmiles()) return;
   try {
     var obj = Kekule.IO.loadFormatData(smiles, 'smi');
     if (obj) composer.setChemObj(obj);
@@ -165,6 +187,7 @@ function render(result, extraWarnings) {
     '<div>분자식<b>' + formatFormula(result.formula) + '</b></div>' +
     '<div>분자량<b>' + result.mass.toFixed(2) + '</b></div>' +
     '<div>원자 수(H 제외)<b>' + result.atomCount + '</b></div>' +
+    stereoFact(result) +
     '</div>';
 
   if (result.common && result.common.length) {
@@ -201,6 +224,28 @@ function render(result, extraWarnings) {
   }
 
   document.getElementById('result-body').innerHTML = html;
+}
+
+/** "입체중심 3개 (모두 지정됨)" - only shown when there is something to say. */
+function stereoFact(result) {
+  var stereo = result.stereo;
+  if (!stereo) return '';
+  var defined = Object.keys(stereo.atoms).length;
+  var undef = stereo.undefinedCentres.length;
+  var bondsDefined = Object.keys(stereo.bonds).length;
+  var bondsUndef = stereo.undefinedBonds.length;
+  var parts = [];
+  if (defined + undef > 0) {
+    parts.push('<div>입체중심<b>' + (defined + undef) + '개' +
+      (undef === 0 ? ' (지정됨)' : (defined === 0 ? ' (미지정)' : ' (' + defined + '개 지정)')) +
+      '</b></div>');
+  }
+  if (bondsDefined + bondsUndef > 0) {
+    parts.push('<div>E/Z 이중결합<b>' + (bondsDefined + bondsUndef) + '개' +
+      (bondsUndef === 0 ? ' (지정됨)' : (bondsDefined === 0 ? ' (미지정)' : ' (' + bondsDefined + '개 지정)')) +
+      '</b></div>');
+  }
+  return parts.join('');
 }
 
 function section(title, body) {
