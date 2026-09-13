@@ -1,59 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>Organic Name Generator</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Organic Name Generator — 구조식으로 IUPAC 이름 찾기</title>
   <link rel="stylesheet" href="css/kekule.css">
-  
+  <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-  <h1>Organic Name Generator</h1>
+  <header>
+    <h1>Organic Name Generator</h1>
+    <p>유기 화합물 구조를 그리면 IUPAC 명명법에 따른 이름과, 함께 쓰이는 다른 이름들(관용 접두사·관용명·관용 표기)을 보여 줍니다.</p>
+  </header>
 
-  <div id="editor" style="width:600px; height:400px; border:1px solid #ccc;" data-widget="Kekule.Editor.Composer"></div></div>
+  <main>
+    <section class="panel">
+      <h2>구조 그리기</h2>
+      <div id="editor"><div id="editor-fallback">구조 편집기를 불러오는 중입니다…</div></div>
 
-  <button onclick="generateName()">이름 생성하기</button>
+      <div class="toolbar">
+        <button class="primary" id="btn-name">이름 생성하기</button>
+        <button id="btn-clear">지우기</button>
+      </div>
 
-  <script src="js/kekule.js"></script> 
-  <script>
-    let composer;
-  
-    window.onload = function () {
-      const container = document.getElementById('editor');
-      composer = new Kekule.Editor.Composer(container);
-    };
-  
-    async function generateName() {
-      if (!composer || !composer.editor) {
-        alert('Editor is not ready yet!');
-        return;
-      }
-  
-      const smiles = composer.editor.exportSmiles();
-      console.log('SMILES:', smiles);
-  
-      try {
-        const response = await fetch('http://127.0.0.1:5000/generate-name', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ smiles: smiles })
-        });
-  
-        const data = await response.json();
-  
-        if (data.formula) {
-          alert('분자식: ' + data.formula);
-        } else {
-          alert('에러: ' + (data.error || 'Unknown error'));
-        }
-      } catch (error) {
-        console.error(error);
-        alert('백엔드 서버에 연결하지 못했습니다.');
-      }
-    }
-  </script>
-  
+      <div class="smiles-row">
+        <input id="smiles-input" placeholder="또는 SMILES 입력 — 예: CC(=O)Oc1ccccc1C(=O)O" spellcheck="false">
+        <button id="btn-smiles">SMILES로 이름 생성</button>
+      </div>
+      <p class="hint">예시를 눌러 보세요. (편집기가 SMILES 읽기를 지원하면 구조도 함께 그려집니다.)</p>
+      <div class="examples" id="examples"></div>
+    </section>
+
+    <section class="panel" id="result-panel">
+      <h2>결과</h2>
+      <p class="result-name empty" id="result-name">구조를 그리고 <b>이름 생성하기</b>를 누르세요.</p>
+      <div id="result-body"></div>
+    </section>
+  </main>
+
+  <footer>
+    이름은 2013 IUPAC 권고(치환 명명법)를 따릅니다. 입체화학(E/Z, R/S)은 구분하지 않으며,
+    다리 걸친 고리·스피로 고리 등 일부 골격은 잘 알려진 화합물 목록에 있을 때만 이름이 나옵니다.
+  </footer>
+
+  <script src="js/kekule.js"></script>
+  <script src="js/chem/mol.js"></script>
+  <script src="js/chem/smiles.js"></script>
+  <script src="js/chem/match.js"></script>
+  <script src="js/chem/rings.js"></script>
+  <script src="js/chem/groups.js"></script>
+  <script src="js/chem/naming.js"></script>
+  <script src="js/chem/branches.js"></script>
+  <script src="js/chem/compounds.js"></script>
+  <script src="js/chem/variants.js"></script>
+  <script src="js/chem/api.js"></script>
+  <script src="js/chem/kekule-bridge.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>
