@@ -1,0 +1,170 @@
+/* Organic Name Generator - page styles (the Kekule editor brings its own). */
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --ink: #1c2530;
+  --muted: #667081;
+  --line: #dfe3e9;
+  --accent: #1f6feb;
+  --accent-soft: #eaf1fe;
+  --warn-bg: #fff7e6;
+  --warn-line: #f0c36d;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 0 16px 48px;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", system-ui, -apple-system, sans-serif;
+  line-height: 1.55;
+}
+
+header {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 0 18px;
+}
+header h1 { margin: 0 0 6px; font-size: 1.6rem; letter-spacing: -0.02em; }
+header p { margin: 0; color: var(--muted); font-size: 0.93rem; }
+
+main {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+#editor {
+  width: 100%;
+  height: 460px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+#editor-fallback {
+  padding: 24px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+
+button {
+  font: inherit;
+  padding: 9px 15px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+button:hover { border-color: #bcc3cd; }
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+button.primary:hover { background: #195bc4; }
+
+.smiles-row { display: flex; gap: 8px; margin-top: 12px; }
+.smiles-row input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.hint { margin: 8px 0 0; font-size: 0.82rem; color: var(--muted); }
+
+.examples { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.examples button { padding: 5px 11px; font-size: 0.84rem; border-radius: 999px; }
+
+/* ---- results ---- */
+.result-name {
+  font-size: 1.42rem;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-word;
+  margin: 0;
+}
+.result-name.empty { color: var(--muted); font-weight: 400; font-size: 1rem; }
+
+.badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 2px 9px;
+  font-size: 0.74rem;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid #cfe0fb;
+}
+
+.facts { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 14px; font-size: 0.9rem; }
+.facts div { color: var(--muted); }
+.facts b { display: block; color: var(--ink); font-weight: 600; font-size: 1rem; }
+
+.section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.section h3 { margin: 0 0 10px; font-size: 0.82rem; letter-spacing: 0.06em; color: var(--muted); text-transform: uppercase; }
+
+ul.names { list-style: none; margin: 0; padding: 0; }
+ul.names li { padding: 7px 0; border-bottom: 1px dashed var(--line); }
+ul.names li:last-child { border-bottom: none; }
+ul.names .n { font-weight: 600; word-break: break-word; }
+ul.names .why { display: block; font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+
+.common span {
+  display: inline-block;
+  margin: 0 6px 6px 0;
+  padding: 4px 11px;
+  background: #f0f3f7;
+  border-radius: 999px;
+  font-size: 0.88rem;
+}
+
+ol.steps { margin: 0; padding-left: 18px; font-size: 0.9rem; }
+ol.steps li { margin-bottom: 8px; }
+ol.steps b { display: block; }
+ol.steps span { color: var(--muted); }
+
+.warnings {
+  margin-top: 16px;
+  padding: 11px 13px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  border-radius: 8px;
+  font-size: 0.86rem;
+}
+.warnings ul { margin: 6px 0 0; padding-left: 18px; }
+
+footer {
+  max-width: 1180px;
+  margin: 26px auto 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
